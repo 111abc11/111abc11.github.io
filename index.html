@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width,initial-scale=1.0,maximum-scale=1.0,user-scalable=no,viewport-fit=cover">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="运动记录">
+<meta name="theme-color" content="#4F46E5">
+<link rel="manifest" href="/manifest.json">
+<link rel="apple-touch-icon" sizes="152x152" href="icons/icon-152x152.png">
+<link rel="apple-touch-icon" sizes="192x192" href="icons/icon-192x192.png">
+<title>运动记录</title>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#f1f5f9;--surface:#fff;--surface-raised:#fff;
+  --primary:#4F46E5;--primary-light:#818CF8;--primary-dark:#3730A3;
+  --text:#1e293b;--text-secondary:#64748b;--text-tertiary:#94a3b8;
+  --border:#e2e8f0;--divider:#e2e8f0;
+  --success:#22c55e;--warning:#f59e0b;--danger:#ef4444;
+  --tab-height:56px;--header-height:56px;
+  --safe-top:env(safe-area-inset-top,0px);--safe-bottom:env(safe-area-inset-bottom,0px);
+  --font:-apple-system,BlinkMacSystemFont,'SF Pro Display','PingFang SC','Helvetica Neue',sans-serif;
+  --radius:12px;--radius-lg:16px;
+}
+@media(prefers-color-scheme:dark){
+  :root{
+    --bg:#0f172a;--surface:#1e293b;--surface-raised:#334155;
+    --text:#f1f5f9;--text-secondary:#94a3b8;--text-tertiary:#64748b;
+    --border:#334155;--divider:#334155;
+  }
+}
+html,body{height:100%;overflow:hidden;background:var(--bg);color:var(--text);font-family:var(--font);-webkit-font-smoothing:antialiased;-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+input,select,textarea,button{font-family:var(--font);font-size:16px}
+h1{font-size:28px;font-weight:700;letter-spacing:-0.5px}
+h2{font-size:20px;font-weight:600;letter-spacing:-0.3px}
+h3{font-size:17px;font-weight:600}
+.app{display:flex;flex-direction:column;height:100%;padding-top:var(--safe-top)}
+.header{height:var(--header-height);display:flex;align-items:center;justify-content:space-between;padding:0 20px;background:var(--surface);border-bottom:1px solid var(--border);flex-shrink:0;position:relative;z-index:10}
+.header h1{font-size:22px;background:linear-gradient(135deg,var(--primary),var(--primary-light));-webkit-background-clip:text;-webkit-text-fill-color:transparent;background-clip:text}
+.header-btn{background:none;border:none;color:var(--text-secondary);font-size:22px;width:36px;height:36px;display:flex;align-items:center;justify-content:center;border-radius:50%;cursor:pointer;transition:background .2s}
+.header-btn:active{background:var(--border)}
+.main{flex:1;overflow-y:auto;overflow-x:hidden;-webkit-overflow-scrolling:touch;padding-bottom:var(--tab-height)}
+.tab-content{display:none;padding:16px;animation:fadeIn .25s ease}
+.tab-content.active{display:block}
+@keyframes fadeIn{from{opacity:0;transform:translateY(6px)}to{opacity:1;transform:translateY(0)}}
+.tab-bar{height:calc(var(--tab-height) + var(--safe-bottom));padding-bottom:var(--safe-bottom);display:flex;align-items:center;background:var(--surface);border-top:1px solid var(--border);flex-shrink:0;position:fixed;bottom:0;left:0;right:0;z-index:100;backdrop-filter:blur(20px);-webkit-backdrop-filter:blur(20px);background:rgba(255,255,255,.85)}
+@media(prefers-color-scheme:dark){.tab-bar{background:rgba(30,41,59,.92)}}
+.tab-item{flex:1;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:2px;height:100%;border:none;background:none;color:var(--text-tertiary);font-size:10px;font-weight:500;cursor:pointer;transition:color .2s;-webkit-tap-highlight-color:transparent}
+.tab-item.active{color:var(--primary)}
+.tab-item svg{width:24px;height:24px}
+.tab-item span{line-height:1}
+.fab{position:fixed;bottom:calc(var(--tab-height) + var(--safe-bottom) + 16px);right:20px;width:56px;height:56px;border-radius:50%;background:linear-gradient(135deg,var(--primary),var(--primary-dark));border:none;color:#fff;font-size:28px;display:flex;align-items:center;justify-content:center;cursor:pointer;box-shadow:0 4px 16px rgba(79,70,229,.4);z-index:90;transition:transform .2s,box-shadow .2s}
+.fab:active{transform:scale(.92);box-shadow:0 2px 8px rgba(79,70,229,.3)}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:200;opacity:0;pointer-events:none;transition:opacity .3s}
+.overlay.show{opacity:1;pointer-events:auto}
+.sheet{position:fixed;bottom:0;left:0;right:0;background:var(--surface);border-radius:var(--radius-lg) var(--radius-lg) 0 0;z-index:300;transform:translateY(100%);transition:transform .35s cubic-bezier(.32,.72,0,1);max-height:85vh;overflow-y:auto;padding-bottom:var(--safe-bottom)}
+.sheet.show{transform:translateY(0)}
+.sheet-handle{width:36px;height:4px;border-radius:2px;background:var(--text-tertiary);margin:10px auto 12px;opacity:.4}
+.sheet-header{display:flex;align-items:center;justify-content:space-between;padding:4px 20px 16px}
+.sheet-header h2{font-size:18px}
+.sheet-close{background:none;border:none;color:var(--text-secondary);font-size:24px;width:32px;height:32px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer}
+.form{padding:0 20px 20px;display:flex;flex-direction:column;gap:16px}
+.form-group{display:flex;flex-direction:column;gap:6px}
+.form-group label{font-size:14px;font-weight:500;color:var(--text-secondary)}
+.form-input,.form-select,.form-textarea{padding:12px 14px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:16px;outline:none;transition:border-color .2s;-webkit-appearance:none;appearance:none}
+.form-input:focus,.form-select:focus,.form-textarea:focus{border-color:var(--primary)}
+.form-select{background-image:url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='12' fill='%2394a3b8' viewBox='0 0 16 16'%3E%3Cpath d='M8 11L3 6h10z'/%3E%3C/svg%3E");background-repeat:no-repeat;background-position:right 12px center;padding-right:36px}
+.form-textarea{min-height:80px;resize:vertical}
+.form-row{display:flex;gap:12px}
+.form-row .form-group{flex:1}
+.status-group{display:flex;gap:8px}
+.status-btn{flex:1;padding:10px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg);text-align:center;font-size:14px;font-weight:500;cursor:pointer;transition:all .2s;display:flex;align-items:center;justify-content:center;gap:6px}
+.status-btn:active{transform:scale(.97)}
+.status-btn.selected-completed{border-color:var(--success);background:#dcfce7;color:#166534}
+.status-btn.selected-partial{border-color:var(--warning);background:#fef3c7;color:#92400e}
+.status-btn.selected-skipped{border-color:var(--danger);background:#fee2e2;color:#991b1b}
+@media(prefers-color-scheme:dark){
+  .status-btn.selected-completed{border-color:var(--success);background:rgba(34,197,94,.15);color:#4ade80}
+  .status-btn.selected-partial{border-color:var(--warning);background:rgba(245,158,11,.15);color:#fbbf24}
+  .status-btn.selected-skipped{border-color:var(--danger);background:rgba(239,68,68,.15);color:#f87171}
+}
+.btn-primary{width:100%;padding:14px;border:none;border-radius:var(--radius);background:linear-gradient(135deg,var(--primary),var(--primary-dark));color:#fff;font-size:17px;font-weight:600;cursor:pointer;transition:opacity .2s,transform .2s}
+.btn-primary:active{opacity:.9;transform:scale(.98)}
+.btn-secondary{width:100%;padding:14px;border:1.5px solid var(--border);border-radius:var(--radius);background:var(--bg);color:var(--text);font-size:17px;font-weight:500;cursor:pointer;transition:all .2s}
+.btn-secondary:active{background:var(--border)}
+.btn-danger{padding:8px 16px;border:none;border-radius:8px;background:var(--danger);color:#fff;font-size:13px;font-weight:500;cursor:pointer;transition:opacity .2s}
+.btn-danger:active{opacity:.8}
+/* Cards */
+.stat-card{background:var(--surface);border-radius:var(--radius);padding:16px;border:1px solid var(--border)}
+.stat-card .value{font-size:28px;font-weight:700;color:var(--primary);margin-top:4px}
+.stat-card .label{font-size:13px;color:var(--text-secondary)}
+.stat-grid{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-bottom:16px}
+.stat-card-wide{grid-column:1/-1}
+.stats-summary{margin-bottom:24px}
+/* Record list */
+.date-group{margin-bottom:24px}
+.date-group:last-child{margin-bottom:0}
+.date-header{font-size:15px;font-weight:600;color:var(--text-secondary);padding:8px 4px 10px;display:flex;align-items:center;justify-content:space-between}
+.date-header .count{font-size:13px;font-weight:400;color:var(--text-tertiary)}
+.record-card{background:var(--surface);border-radius:var(--radius);padding:14px 16px;margin-bottom:8px;border:1px solid var(--border);display:flex;align-items:center;gap:12px;transition:all .2s;cursor:default}
+.record-card:active{background:var(--bg)}
+.record-icon{width:40px;height:40px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:18px;flex-shrink:0}
+.record-icon.跑步{background:#fee2e2;color:#dc2626}
+.record-icon.游泳{background:#dbeafe;color:#2563eb}
+.record-icon.骑行{background:#fef3c7;color:#d97706}
+.record-icon.瑜伽{background:#f3e8ff;color:#9333ea}
+.record-icon.力量训练{background:#e0e7ff;color:#4f46e5}
+.record-icon.篮球{background:#ffedd5;color:#ea580c}
+.record-icon.足球{background:#dcfce7;color:#16a34a}
+.record-icon.基础{background:#e0e7ff;color:#4f46e5}
+.record-icon.有氧{background:#fce7f3;color:#db2777}
+@media(prefers-color-scheme:dark){
+  .record-icon.跑步{background:rgba(220,38,38,.2);color:#fca5a5}
+  .record-icon.游泳{background:rgba(37,99,235,.2);color:#93c5fd}
+  .record-icon.骑行{background:rgba(217,119,6,.2);color:#fcd34d}
+  .record-icon.瑜伽{background:rgba(147,51,234,.2);color:#d8b4fe}
+  .record-icon.力量训练{background:rgba(79,70,229,.2);color:#a5b4fc}
+  .record-icon.篮球{background:rgba(234,88,12,.2);color:#fdba74}
+  .record-icon.足球{background:rgba(22,163,74,.2);color:#86efac}
+  .record-icon.基础{background:rgba(79,70,229,.2);color:#a5b4fc}
+  .record-icon.有氧{background:rgba(219,39,119,.2);color:#f9a8d4}
+}
+.record-info{flex:1;min-width:0}
+.record-sport{font-size:15px;font-weight:600;color:var(--text);display:flex;align-items:center;gap:8px}
+.record-meta{font-size:13px;color:var(--text-tertiary);margin-top:2px;display:flex;gap:12px;flex-wrap:wrap}
+.record-notes{font-size:13px;color:var(--text-secondary);margin-top:4px;line-height:1.4}
+.record-status{flex-shrink:0}
+.badge{display:inline-flex;align-items:center;gap:4px;padding:3px 10px;border-radius:20px;font-size:12px;font-weight:500}
+.badge-completed{background:#dcfce7;color:#166534}
+.badge-partial{background:#fef3c7;color:#92400e}
+.badge-skipped{background:#fee2e2;color:#991b1b}
+@media(prefers-color-scheme:dark){
+  .badge-completed{background:rgba(34,197,94,.15);color:#4ade80}
+  .badge-partial{background:rgba(245,158,11,.15);color:#fbbf24}
+  .badge-skipped{background:rgba(239,68,68,.15);color:#f87171}
+}
+.record-delete{background:none;border:none;color:var(--text-tertiary);font-size:18px;width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;opacity:0;transition:opacity .2s}
+.record-card:hover .record-delete{opacity:1}
+@media(hover:none){.record-delete{opacity:1}}
+.record-delete:active{background:var(--border);color:var(--danger)}
+/* Empty state */
+.empty-state{display:flex;flex-direction:column;align-items:center;justify-content:center;padding:60px 20px;text-align:center;color:var(--text-tertiary)}
+.empty-state svg{width:64px;height:64px;margin-bottom:16px;opacity:.5}
+.empty-state p{font-size:15px;line-height:1.5}
+.empty-state .sub{font-size:13px;margin-top:6px;color:var(--text-tertiary)}
+/* Filter bar */
+.filter-bar{display:flex;gap:8px;margin-bottom:16px;overflow-x:auto;padding-bottom:4px;-webkit-overflow-scrolling:touch}
+.filter-bar::-webkit-scrollbar{display:none}
+.filter-chip{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);font-size:13px;font-weight:500;color:var(--text-secondary);white-space:nowrap;cursor:pointer;transition:all .2s;flex-shrink:0}
+.filter-chip:active{transform:scale(.96)}
+.filter-chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
+/* Settings */
+.settings-section{margin-bottom:24px}
+.settings-section h3{font-size:14px;font-weight:600;color:var(--text-secondary);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px;padding:0 4px}
+.settings-item{display:flex;align-items:center;justify-content:space-between;padding:14px 16px;background:var(--surface);border:1px solid var(--border)} 
+.settings-item:first-child{border-radius:var(--radius) var(--radius) 0 0}
+.settings-item:last-child{border-radius:0 0 var(--radius) var(--radius)} 
+.settings-item:only-child{border-radius:var(--radius)}
+.settings-item+.settings-item{border-top:none}
+.settings-item-label{font-size:15px;font-weight:500;color:var(--text)}
+.settings-item-desc{font-size:13px;color:var(--text-tertiary);margin-top:2px}
+.settings-item-right{display:flex;align-items:center;gap:8px;color:var(--text-secondary);font-size:14px}
+.sport-tag{display:inline-flex;align-items:center;gap:6px;padding:6px 12px;border-radius:20px;background:var(--bg);border:1px solid var(--border);font-size:14px;font-weight:500;margin:4px}
+.sport-tag-remove{background:none;border:none;color:var(--text-tertiary);font-size:16px;cursor:pointer;display:flex;align-items:center;padding:0;line-height:1}
+.sport-tag-remove:hover{color:var(--danger)}
+.sport-list{display:flex;flex-wrap:wrap;gap:4px;padding:8px 0}
+.add-sport-row{display:flex;gap:8px;margin-top:8px}
+.add-sport-row input{flex:1;padding:10px 12px;border:1.5px solid var(--border);border-radius:8px;background:var(--bg);color:var(--text);font-size:15px;outline:none}
+.add-sport-row input:focus{border-color:var(--primary)}
+.add-sport-row button{padding:10px 16px;border:none;border-radius:8px;background:var(--primary);color:#fff;font-size:14px;font-weight:500;cursor:pointer}
+.confirm-dialog{padding:16px 20px 20px;text-align:center}
+.confirm-dialog p{font-size:15px;color:var(--text-secondary);margin-bottom:16px;line-height:1.5}
+.confirm-dialog .btn-row{display:flex;gap:10px}
+.confirm-dialog .btn-row button{flex:1;padding:12px;border-radius:var(--radius);font-size:15px;font-weight:500;cursor:pointer}
+.confirm-cancel{border:1.5px solid var(--border);background:var(--bg);color:var(--text)}
+.confirm-danger{border:none;background:var(--danger);color:#fff}
+.stat-chart{display:flex;align-items:flex-end;gap:4px;height:120px;padding-top:8px}
+.stat-bar{flex:1;border-radius:4px 4px 0 0;min-height:4px;position:relative;transition:height .6s ease;background:var(--primary-light)}
+.stat-bar-label{position:absolute;bottom:-18px;left:50%;transform:translateX(-50%);font-size:10px;color:var(--text-tertiary);white-space:nowrap}
+.stat-bar-value{position:absolute;top:-18px;left:50%;transform:translateX(-50%);font-size:10px;font-weight:600;color:var(--text-secondary);white-space:nowrap}
+.toast{position:fixed;bottom:calc(var(--tab-height) + var(--safe-bottom) + 80px);left:50%;transform:translateX(-50%);padding:10px 20px;border-radius:10px;background:var(--text);color:var(--bg);font-size:14px;font-weight:500;z-index:500;opacity:0;pointer-events:none;transition:opacity .3s;box-shadow:0 4px 12px rgba(0,0,0,.15)}
+.toast.show{opacity:1}
+@media(min-width:500px){.main{margin:0 auto;max-width:480px}}
+.strength-section{display:none;margin-top:4px;padding:14px;background:var(--bg);border-radius:var(--radius);border:1.5px dashed var(--primary-light)}
+.strength-section.show{display:block;animation:fadeIn .3s ease}
+.bodypart-grid{display:flex;gap:6px;flex-wrap:wrap;margin-bottom:12px}
+.bodypart-chip{padding:6px 14px;border-radius:20px;border:1.5px solid var(--border);background:var(--surface);font-size:13px;font-weight:500;color:var(--text-secondary);cursor:pointer;transition:all .2s}
+.bodypart-chip:active{transform:scale(.96)}
+.bodypart-chip.active{background:var(--primary);border-color:var(--primary);color:#fff}
+.exercise-list{display:flex;flex-direction:column;gap:8px;margin-bottom:10px;margin-top:4px}
+.exercise-row{display:flex;gap:6px;align-items:center}
+.exercise-row select{flex:2;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px;outline:none;-webkit-appearance:none;appearance:none}
+.exercise-row input{flex:1;padding:8px 10px;border:1.5px solid var(--border);border-radius:8px;background:var(--surface);color:var(--text);font-size:14px;outline:none;text-align:center;min-width:50px}
+.exercise-row input:focus,.exercise-row select:focus{border-color:var(--primary)}
+.exercise-row .ex-del{background:none;border:none;color:var(--text-tertiary);font-size:18px;width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;cursor:pointer;flex-shrink:0}
+.exercise-row .ex-del:active{background:var(--border);color:var(--danger)}
+.ex-add-btn{width:100%;padding:8px;border:1.5px dashed var(--border);border-radius:8px;background:transparent;color:var(--text-secondary);font-size:14px;font-weight:500;cursor:pointer;transition:all .2s}
+.ex-add-btn:active{background:var(--border);color:var(--text)}
+.exercise-tag{display:inline-flex;align-items:center;gap:4px;padding:2px 8px;border-radius:6px;background:var(--bg);font-size:12px;color:var(--text-secondary);margin:1px 2px}
+.exercise-tag .sep{color:var(--text-tertiary)}
+
+</style>
+</head>
+<body>
+<div class="app" id="app">
+  <header class="header">
+    <h1>运动记录</h1>
+    <button class="header-btn" onclick="toggleDarkMode()" id="themeBtn" aria-label="切换主题">
+      <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 12.79A9 9 0 1111.21 3 7 7 0 0021 12.79z"/></svg>
+    </button>
+  </header>
+  <div class="main" id="mainContent">
+    <!-- 记录 Tab -->
+    <div class="tab-content active" id="tabLog">
+      <div class="filter-bar" id="filterBar"></div>
+      <div id="recordList"></div>
+    </div>
+    <!-- 统计 Tab -->
+    <div class="tab-content" id="tabStats">
+      <div class="stats-summary" id="statsContent"></div>
+    </div>
+    <!-- 设置 Tab -->
+    <div class="tab-content" id="tabSettings">
+      <div class="settings-section">
+        <h3>运动项目管理</h3>
+        <div class="settings-item" style="flex-direction:column;align-items:stretch">
+          <div class="sport-list" id="sportList"></div>
+          <div class="add-sport-row">
+            <input type="text" id="newSportInput" placeholder="添加新项目" maxlength="20" autocomplete="off">
+            <button onclick="addSport()">添加</button>
+          </div>
+        </div>
+      </div>
+      <div class="settings-section">
+        <h3>数据管理</h3>
+        <div class="settings-item" onclick="exportData()"><div><div class="settings-item-label">导出数据</div><div class="settings-item-desc">保存为 JSON 文件</div></div><div class="settings-item-right"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg></div></div>
+        <div class="settings-item" onclick="document.getElementById('importInput').click()"><div><div class="settings-item-label">导入数据</div><div class="settings-item-desc">从 JSON 文件恢复</div></div><div class="settings-item-right"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M21 15v4a2 2 0 01-2 2H5a2 2 0 01-2-2v-4"/><polyline points="17 8 12 3 7 8"/><line x1="12" y1="3" x2="12" y2="15"/></svg></div></div>
+        <input type="file" id="importInput" accept=".json" style="display:none" onchange="importData(event)">
+        <div class="settings-item" onclick="confirmClear()"><div><div class="settings-item-label" style="color:var(--danger)">清空所有数据</div><div class="settings-item-desc">不可撤销</div></div><div class="settings-item-right" style="color:var(--danger)"><svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><polyline points="3 6 5 6 21 6"/><path d="M19 6v14a2 2 0 01-2 2H7a2 2 0 01-2-2V6m3 0V4a2 2 0 012-2h4a2 2 0 012 2v2"/></svg></div></div>
+      </div>
+      <div class="settings-section">
+        <h3>关于</h3>
+        <div class="settings-item"><div><div class="settings-item-label">版本</div></div><div class="settings-item-right">1.0.0</div></div>
+      </div>
+    </div>
+  </div>
+  <!-- Tab Bar -->
+  <nav class="tab-bar" id="tabBar">
+    <button class="tab-item active" data-tab="tabLog">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><rect x="3" y="4" width="18" height="18" rx="2" ry="2"/><line x1="16" y1="2" x2="16" y2="6"/><line x1="8" y1="2" x2="8" y2="6"/><line x1="3" y1="10" x2="21" y2="10"/><line x1="8" y1="14" x2="8" y2="14"/><line x1="12" y1="14" x2="12" y2="14"/><line x1="16" y1="14" x2="16" y2="14"/><line x1="8" y1="18" x2="8" y2="18"/><line x1="12" y1="18" x2="12" y2="18"/><line x1="16" y1="18" x2="16" y2="18"/></svg>
+      <span>记录</span>
+    </button>
+    <button class="tab-item" data-tab="tabStats">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/><line x1="2" y1="20" x2="22" y2="20"/></svg>
+      <span>统计</span>
+    </button>
+    <button class="tab-item" data-tab="tabSettings">
+      <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="12" r="3"/><path d="M19.4 15a1.65 1.65 0 00.33 1.82l.06.06a2 2 0 010 2.83 2 2 0 01-2.83 0l-.06-.06a1.65 1.65 0 00-1.82-.33 1.65 1.65 0 00-1 1.51V21a2 2 0 01-2 2 2 2 0 01-2-2v-.09A1.65 1.65 0 009 19.4a1.65 1.65 0 00-1.82.33l-.06.06a2 2 0 01-2.83 0 2 2 0 010-2.83l.06-.06A1.65 1.65 0 004.68 15a1.65 1.65 0 00-1.51-1H3a2 2 0 01-2-2 2 2 0 012-2h.09A1.65 1.65 0 004.6 9a1.65 1.65 0 00-.33-1.82l-.06-.06a2 2 0 010-2.83 2 2 0 012.83 0l.06.06A1.65 1.65 0 009 4.68a1.65 1.65 0 001-1.51V3a2 2 0 012-2 2 2 0 012 2v.09a1.65 1.65 0 001 1.51 1.65 1.65 0 001.82-.33l.06-.06a2 2 0 012.83 0 2 2 0 010 2.83l-.06.06A1.65 1.65 0 0019.32 9a1.65 1.65 0 001.51 1H21a2 2 0 012 2 2 2 0 01-2 2h-.09a1.65 1.65 0 00-1.51 1z"/></svg>
+      <span>设置</span>
+    </button>
+  </nav>
+  <!-- FAB -->
+  <button class="fab" id="fabBtn" onclick="openAddSheet()" aria-label="添加记录">
+    <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
+  </button>
+  <!-- Overlay -->
+  <div class="overlay" id="overlay" onclick="closeSheet()"></div>
+  <!-- Bottom Sheet -->
+  <div class="sheet" id="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-header">
+      <h2 id="sheetTitle">添加记录</h2>
+      <button class="sheet-close" onclick="closeSheet()">&times;</button>
+    </div>
+    <form class="form" id="recordForm" onsubmit="saveRecord(event)" autocomplete="off">
+      <input type="hidden" id="editId" value="">
+      <div class="form-group">
+        <label for="recordDate">日期</label>
+        <input type="date" class="form-input" id="recordDate" required>
+      </div>
+      <div class="form-group">
+        <label for="recordSport">运动项目</label>
+        <div style="display:flex;gap:8px">
+          <select class="form-select" id="recordSport" style="flex:1" onchange="onSportChange()">
+          </select>
+          <input type="text" class="form-input" id="recordSportCustom" style="flex:1;display:none" placeholder="输入项目名称" maxlength="20">
+        </div>
+      </div>
+      <div class="form-group">
+        <label>完成情况</label>
+        <div class="status-group" id="statusGroup">
+          <button type="button" class="status-btn" data-status="completed" onclick="selectStatus(this)">✓ 完成</button>
+          <button type="button" class="status-btn" data-status="partial" onclick="selectStatus(this)">～ 部分</button>
+          <button type="button" class="status-btn" data-status="skipped" onclick="selectStatus(this)">✕ 跳过</button>
+        </div>
+      </div>
+      <div class="form-row">
+        <div class="form-group">
+          <label for="recordDuration">时长（分钟）</label>
+          <input type="number" class="form-input" id="recordDuration" min="0" step="5" placeholder="可选">
+        </div>
+      </div>
+            <div class="strength-section" id="strengthSection">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:10px">
+          <span style="font-size:15px;font-weight:600;color:var(--text)">训练部位</span>
+          <span style="font-size:12px;color:var(--text-tertiary)">选择一个部位</span>
+        </div>
+        <div class="bodypart-grid" id="bodypartGrid"></div>
+        <div class="exercise-list" id="exerciseList">
+          <div style="text-align:center;padding:10px;color:var(--text-tertiary);font-size:13px">尚未添加动作</div>
+        </div>
+        <button type="button" class="ex-add-btn" id="exAddBtn" onclick="addExercise()">+ 添加动作</button>
+      </div>
+<div class="form-group">
+        <label for="recordNotes">备注</label>
+        <textarea class="form-textarea" id="recordNotes" placeholder="可选" rows="2"></textarea>
+      </div>
+      <button type="submit" class="btn-primary" id="saveBtn">保存</button>
+    </form>
+  </div>
+  <!-- Confirm Sheet -->
+  <div class="sheet" id="confirmSheet">
+    <div class="sheet-handle"></div>
+    <div class="confirm-dialog" id="confirmContent">
+      <h3 style="margin-bottom:8px">确认操作</h3>
+      <p id="confirmText">确定要执行此操作吗？</p>
+      <div class="btn-row">
+        <button class="confirm-cancel" onclick="closeConfirm()">取消</button>
+        <button class="confirm-danger" id="confirmActionBtn" onclick="closeConfirm()">确认</button>
+      </div>
+    </div>
+  </div>
+  <!-- Toast -->
+  <div class="toast" id="toast"></div>
+</div>
+<script>
+// ===== Data =====
+const STORAGE_KEY = 'workout_records';
+const SPORTS_KEY = 'workout_sports';
+const THEME_KEY = 'workout_theme';
+const DEFAULT_SPORTS = ['跑步','游泳','骑行','瑜伽','力量训练','篮球','足球','羽毛球','乒乓球','跳绳','徒步','健身操'];
+let records = [];
+let sports = [];
+let isDark = false;
+let editingId = null;
+let deleteConfirmCb = null;
+
+function loadData(){
+  try{
+    const r = localStorage.getItem(STORAGE_KEY);
+    records = r ? JSON.parse(r) : [];
+  }catch(e){records=[]}
+  try{
+    const s = localStorage.getItem(SPORTS_KEY);
+    sports = s ? JSON.parse(s) : [...DEFAULT_SPORTS];
+  }catch(e){sports=[...DEFAULT_SPORTS]}
+  try{
+    isDark = localStorage.getItem(THEME_KEY)==='dark';
+  }catch(e){isDark=false}
+  applyTheme();
+}
+
+
+const BODY_PARTS = [
+  {id:"chest",name:"胸",icon:"💪",exercises:["平板卧推","上斜卧推","哑铃飞鸟","俯卧撑","绳索夹胸","器械推胸","龙门架飞鸟"]},
+  {id:"back",name:"背",icon:"💪",exercises:["引体向上","杠铃划船","高位下拉","坐姿划船","硬拉","T杠划船","哑铃单臂划船"]},
+  {id:"shoulder",name:"肩",icon:"🏯",exercises:["杠铃推举","哑铃侧平举","哑铃前平举","面拉","阿诺德推举","器械推举","绳索前平举"]},
+  {id:"leg",name:"腿",icon:"🦵",exercises:["深蹲","腿举","腿弯举","腿屈伸","弓步蹲","提踵","保加利亚分腿蹲"]},
+  {id:"arm",name:"手臂",icon:"💪",exercises:["二头弯举","锤式弯举","三头下压","窄距卧推","牧师凳弯举","绳索弯举","仰卧臂屈伸"]},
+  {id:"core",name:"核心",icon:"💪",exercises:["卷腹","平板支撑","悬垂举腿","俄罗斯转体","仰卧抬腿","登山者","腹部器械"]},
+  {id:"fullbody",name:"全身",icon:"🎯",exercises:["波比跳","壶铃摇摆","农夫行走","杠铃抓举","杠铃挺举","土耳其起立"]}
+];
+let currentBodyPart = null;
+let currentExercises = [];
+
+function saveRecords(){
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(records));
+}
+
+function saveSports(){
+  localStorage.setItem(SPORTS_KEY, JSON.stringify(sports));
+}
+
+// ===== Theme =====
+function applyTheme(){
+  if(isDark) document.documentElement.style.colorScheme='dark';
+  else document.documentElement.style.colorScheme='light';
+}
+
+function toggleDarkMode(){
+  isDark=!isDark;
+  localStorage.setItem(THEME_KEY, isDark?'dark':'light');
+  applyTheme();
+  showToast(isDark?'已切换深色模式':'已切换浅色模式');
+}
+
+// ===== Toast =====
+function showToast(msg){
+  const t=document.getElementById('toast');
+  t.textContent=msg;t.classList.add('show');
+  clearTimeout(t._timeout);t._timeout=setTimeout(()=>t.classList.remove('show'),2200);
+}
+
+// ===== Tab =====
+document.getElementById('tabBar').addEventListener('click',e=>{
+  const btn=e.target.closest('.tab-item');
+  if(!btn)return;
+  document.querySelectorAll('.tab-item').forEach(t=>t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
+  btn.classList.add('active');
+  document.getElementById(btn.dataset.tab).classList.add('active');
+  if(btn.dataset.tab==='tabStats')renderStats();
+});
+
+// ===== Sheet =====
+function openSheet(){
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('sheet').classList.add('show');
+  document.body.style.overflow='hidden';
+}
+
+function closeSheet(){
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('sheet').classList.remove('show');
+  document.getElementById('confirmSheet').classList.remove('show');
+  document.body.style.overflow='';
+  document.getElementById('recordForm').reset();
+  document.getElementById('editId').value='';
+  editingId=null;
+  document.getElementById('sheetTitle').textContent='添加记录';
+  document.getElementById('saveBtn').textContent='保存';
+  document.getElementById('recordSportCustom').style.display='none';
+  document.querySelectorAll('.status-btn').forEach(b=>b.className='status-btn');
+}
+
+function openConfirm(){
+  document.getElementById('overlay').classList.add('show');
+  document.getElementById('confirmSheet').classList.add('show');
+  document.body.style.overflow='hidden';
+}
+
+function closeConfirm(){
+  document.getElementById('overlay').classList.remove('show');
+  document.getElementById('confirmSheet').classList.remove('show');
+  document.body.style.overflow='';
+  deleteConfirmCb=null;
+}
+
+// ===== Record Form =====
+function openAddSheet(){
+  editingId=null;
+  document.getElementById('editId').value='';
+  document.getElementById('sheetTitle').textContent='添加记录';
+  document.getElementById('saveBtn').textContent='保存';
+  document.getElementById('recordDate').value=new Date().toISOString().split('T')[0];
+  populateSportSelect();
+  document.getElementById('recordSportCustom').style.display='none';
+  document.getElementById('recordSport').style.display='block';
+  document.querySelectorAll('.status-btn').forEach(b=>b.className='status-btn');
+  document.getElementById('recordDuration').value='';
+  document.getElementById('recordNotes').value='';
+  currentBodyPart=null;
+  currentExercises=[];
+  document.getElementById('strengthSection').classList.remove('show');
+  renderBodyParts();
+  renderExercises();
+  openSheet();
+}
+
+function editRecord(id){
+  const r=records.find(x=>x.id===id);
+  if(!r)return;
+  editingId=id;
+  document.getElementById('editId').value=id;
+  document.getElementById('sheetTitle').textContent='编辑记录';
+  document.getElementById('saveBtn').textContent='更新';
+  document.getElementById('recordDate').value=r.date;
+  populateSportSelect(r.sport);
+  if(sports.includes(r.sport)){
+    document.getElementById('recordSport').value=r.sport;
+    document.getElementById('recordSportCustom').style.display='none';
+    document.getElementById('recordSport').style.display='block';
+  }else{
+    document.getElementById('recordSport').value='__custom__';
+    document.getElementById('recordSport').style.display='none';
+    document.getElementById('recordSportCustom').style.display='block';
+    document.getElementById('recordSportCustom').value=r.sport;
+  }
+  document.querySelectorAll('.status-btn').forEach(b=>{
+    b.className='status-btn';
+    if(b.dataset.status===r.status) b.classList.add('selected-'+r.status);
+  });
+  document.getElementById('recordDuration').value=r.duration||'';
+  document.getElementById('recordNotes').value=r.notes||'';
+  openSheet();
+}
+
+function populateSportSelect(selected){
+  const sel=document.getElementById('recordSport');
+  sel.innerHTML='';
+  sports.forEach(s=>{
+    const opt=document.createElement('option');
+    opt.value=s;opt.textContent=s;
+    if(s===selected)opt.selected=true;
+    sel.appendChild(opt);
+  });
+  const opt=document.createElement('option');
+  opt.value='__custom__';opt.textContent='自定义...';
+  sel.appendChild(opt);
+}
+
+function onSportChange(){
+  const sel=document.getElementById('recordSport');
+  const cust=document.getElementById('recordSportCustom');
+  if(sel.value==='__custom__'){
+    sel.style.display='none';
+    cust.style.display='block';
+    cust.focus();
+    document.getElementById('strengthSection').classList.remove('show');
+  } else {
+    if(sel.value==='力量训练'){
+      document.getElementById('strengthSection').classList.add('show');
+      renderBodyParts();
+    } else {
+      document.getElementById('strengthSection').classList.remove('show');
+    }
+  }
+}
+function renderBodyParts(){
+  const grid=document.getElementById('bodypartGrid');
+  grid.innerHTML=BODY_PARTS.map(bp=>'<button type="button" class="bodypart-chip'+(currentBodyPart===bp.id?' active':'')+'" onclick="selectBodyPart(\''+bp.id+'\')">'+bp.icon+' '+bp.name+'</button>').join("");
+}
+function selectBodyPart(id){
+  currentBodyPart=id;
+  currentExercises=[];
+  renderBodyParts();
+  renderExercises();
+  showToast('已选择'+BODY_PARTS.find(b=>b.id===id).name);
+}
+function addExercise(){
+  if(!currentBodyPart){showToast('请先选择训练部位');return;}
+  currentExercises.push({name:BODY_PARTS.find(b=>b.id===currentBodyPart).exercises[0],sets:4,reps:12});
+  renderExercises();
+}
+function removeExercise(idx){
+  currentExercises.splice(idx,1);
+  renderExercises();
+}
+function renderExercises(){
+  const el=document.getElementById('exerciseList');
+  const bp=BODY_PARTS.find(b=>b.id===currentBodyPart);
+  if(!currentExercises.length){
+    el.innerHTML='<div style="text-align:center;padding:10px;color:var(--text-tertiary);font-size:13px">尚未添加动作</div>';
+    return;
+  }
+  el.innerHTML=currentExercises.map((ex,i)=>{
+    const opts=bp?bp.exercises.map(e=>'<option value="'+e+'"'+(e===ex.name?' selected':'')+'>'+e+'</option>').join(''):'';
+    return '<div class="exercise-row"><select onchange="updateExName('+i+',this.value)">'+opts+'</select>'
+      +'<input type="number" min="0" value="'+(ex.sets||4)+'" onchange="updateExSets('+i+',this.value)" placeholder="组" title="组数">'
+      +'<input type="number" min="0" value="'+(ex.reps||'')+'" onchange="updateExReps('+i+',this.value)" placeholder="次" title="每组次数">'
+      +'<button type="button" class="ex-del" onclick="removeExercise('+i+')">&times;</button></div>';
+  }).join('');
+}
+function updateExName(i,v){if(currentExercises[i]){currentExercises[i].name=v;}}
+function updateExSets(i,v){if(currentExercises[i]){currentExercises[i].sets=parseInt(v)||0;}}
+function updateExReps(i,v){if(currentExercises[i]){currentExercises[i].reps=parseInt(v)||0;}}
+
+
+function selectStatus(btn){
+  document.querySelectorAll('.status-btn').forEach(b=>{
+    b.className='status-btn';
+  });
+  btn.classList.add('selected-'+btn.dataset.status);
+}
+
+function getSportName(){
+  const sel=document.getElementById('recordSport');
+  const cust=document.getElementById('recordSportCustom');
+  if(sel.value==='__custom__') return cust.value.trim();
+  return sel.value;
+}
+
+function saveRecord(e){
+  e.preventDefault();
+  const sport=getSportName();
+  if(!sport){showToast('请输入运动项目');return;}
+  const statusBtn=document.querySelector('.status-btn.selected-completed,.status-btn.selected-partial,.status-btn.selected-skipped');
+  if(!statusBtn){showToast('请选择完成情况');return;}
+  const date=document.getElementById('recordDate').value;
+  const status=statusBtn.dataset.status;
+  const dur=parseInt(document.getElementById('recordDuration').value)||0;
+  const notes=document.getElementById('recordNotes').value.trim();
+  const editId=document.getElementById('editId').value;
+  let strengthDetails=null;
+  if(sport==='力量训练'&&currentBodyPart&&currentExercises.length){
+    strengthDetails={bodyPart:currentBodyPart,exercises:currentExercises.map(e=>({name:e.name,sets:e.sets||0,reps:e.reps||0}))};
+  }
+  if(editId){
+    const idx=records.findIndex(r=>r.id===editId);
+    if(idx>-1){
+      records[idx]={...records[idx],date,sport,status,duration:dur,notes,strengthDetails,updatedAt:Date.now()};
+    }
+  }else{
+    records.unshift({id:Date.now().toString(36)+Math.random().toString(36).slice(2,6),date,sport,status,duration:dur,notes,strengthDetails,createdAt:Date.now()});
+  }
+  saveRecords();
+  closeSheet();
+  renderRecords();
+  showToast(editId?'已更新记录':'已添加记录');
+}
+
+function deleteRecord(id,e){
+  e.stopPropagation();
+  deleteConfirmCb=()=>{
+    records=records.filter(r=>r.id!==id);
+    saveRecords();
+    renderRecords();
+    closeConfirm();
+    showToast('已删除记录');
+  };
+  document.getElementById('confirmText').textContent='确定要删除这条运动记录吗？';
+  document.getElementById('confirmActionBtn').onclick=deleteConfirmCb;
+  openConfirm();
+}
+
+// ===== Render =====
+function renderRecords(){
+  const el=document.getElementById('recordList');
+  const filterEl=document.getElementById('filterBar');
+  const activeFilter=document.querySelector('.filter-chip.active')?.dataset?.sport||'all';
+  
+  // Build sport filter bar
+  let filterHtml='<button class="filter-chip'+(activeFilter==='all'?' active':'')+'" data-sport="all" onclick="setFilter(this)">全部</button>';
+  sports.forEach(s=>{
+    filterHtml+='<button class="filter-chip'+(activeFilter===s?' active':'')+'" data-sport="'+s+'" onclick="setFilter(this)">'+s+'</button>';
+  });
+  filterEl.innerHTML=filterHtml;
+  
+  let filtered=records;
+  if(activeFilter!=='all') filtered=records.filter(r=>r.sport===activeFilter);
+  
+  if(!filtered.length){
+    el.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><path d="M14 2H6a2 2 0 00-2 2v16a2 2 0 002 2h12a2 2 0 002-2V8z"/><polyline points="14 2 14 8 20 8"/><line x1="16" y1="13" x2="8" y2="13"/><line x1="16" y1="17" x2="8" y2="17"/></svg><p>还没有运动记录</p><p class="sub">点击右下角 + 按钮添加第一条记录</p></div>';
+    return;
+  }
+  
+  // Group by date
+  const groups={};
+  filtered.forEach(r=>{
+    if(!groups[r.date]) groups[r.date]=[];
+    groups[r.date].push(r);
+  });
+  const sortedDates=Object.keys(groups).sort((a,b)=>b.localeCompare(a));
+  
+  let html='';
+  sortedDates.forEach(date=>{
+    const items=groups[date];
+    const weekdays=['周日','周一','周二','周三','周四','周五','周六'];
+    const d=new Date(date+'T00:00:00');
+    const label=date===new Date().toISOString().split('T')[0]?'今天':date===new Date(Date.now()-864e5).toISOString().split('T')[0]?'昨天':weekdays[d.getDay()];
+    const displayDate=date===new Date().toISOString().split('T')[0]?'今天':date===new Date(Date.now()-864e5).toISOString().split('T')[0]?'昨天':date;
+    html+='<div class="date-group"><div class="date-header"><span>'+displayDate+' <span style="color:var(--text-tertiary)">'+label+'</span></span><span class="count">'+items.length+' 项</span></div>';
+    items.forEach(r=>{
+      const statusMap={completed:'完成',partial:'部分完成',skipped:'跳过'};
+      html+='<div class="record-card"><div class="record-icon '+r.sport+'">'+getSportIcon(r.sport)+'</div><div class="record-info"><div class="record-sport">'+r.sport+'<span class="badge badge-'+r.status+'">'+statusMap[r.status]+'</span></div><div class="record-meta">'+(r.duration?'<span>'+r.duration+' 分钟</span>':'')+'<span>'+r.date+'</span></div>'+(r.notes?'<div class="record-notes">'+escHtml(r.notes)+'</div>':'')+getStrengthHtml(r)+'</div><button class="record-delete" onclick="deleteRecord(\''+r.id+'\',event)" aria-label="删除">&times;</button></div>';
+    });
+    html+='</div>';
+  });
+  el.innerHTML=html;
+}
+
+function setFilter(el){
+  document.querySelectorAll('.filter-chip').forEach(f=>f.classList.remove('active'));
+  el.classList.add('active');
+  renderRecords();
+}
+
+function getSportIcon(sport){
+  const icons={'跑步':'🏃','游泳':'🏊','骑行':'🚴','瑜伽':'🧘','力量训练':'🏋️','篮球':'🏀','足球':'⚽','羽毛球':'🏸','乒乓球':'🏓','跳绳':'🏃','徒步':'🥾','健身操':'💃'};
+  return icons[sport]||'🏅';
+}
+
+var BP_NAMES={chest:"胸",back:"背",shoulder:"肩",leg:"腿",arm:"手臂",core:"核心",fullbody:"全身"};
+function getStrengthHtml(r){
+  if(!r.strengthDetails||!r.strengthDetails.exercises||!r.strengthDetails.exercises.length)return "";
+  var b=BP_NAMES[r.strengthDetails.bodyPart]||"";
+  var label=b+(b?" 鈥?":"");
+  var exHtml=r.strengthDetails.exercises.map(function(e){
+    return'<span class="exercise-tag">'+e.name+'<span class="sep">×</span>'+e.sets+'组'+(e.reps?'<span class="sep">/</span>'+e.reps+'次':'')+'</span>';
+  }).join("");
+  return'<div class="record-notes" style="margin-top:4px">'+label+exHtml+'</div>';
+}
+
+function escHtml(s){
+  const d=document.createElement('div');d.textContent=s;return d.innerHTML;
+}
+
+// ===== Stats =====
+
+var BP_NAMES={chest:"胸",back:"背",shoulder:"肩",leg:"腿",arm:"手臂",core:"核心",fullbody:"全身"};
+function getStrengthHtml(r){
+  if(!r.strengthDetails||!r.strengthDetails.exercises||!r.strengthDetails.exercises.length)return"";
+  var b=BP_NAMES[r.strengthDetails.bodyPart]||"";
+  var label=b+(b?" 鈥?":"");
+  var exHtml=r.strengthDetails.exercises.map(function(e){
+    return"<span class=\"exercise-tag\">"+e.name+"<span class=\"sep\">×</span>"+e.sets+"组"+(e.reps?"<span class=\"sep\">/</span>"+e.reps+"次":"")+"</span>";
+  }).join("");
+  return"<div class=\"record-notes\" style=\"margin-top:4px\">"+label+exHtml+"</div>";
+}
+function renderStats(){
+  const el=document.getElementById('statsContent');
+  if(!records.length){
+    el.innerHTML='<div class="empty-state"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><line x1="18" y1="20" x2="18" y2="10"/><line x1="12" y1="20" x2="12" y2="4"/><line x1="6" y1="20" x2="6" y2="14"/></svg><p>暂无数据</p><p class="sub">添加记录后查看统计</p></div>';
+    return;
+  }
+  
+  const total=records.length;
+  const completed=records.filter(r=>r.status==='completed').length;
+  const completionRate=total?Math.round(completed/total*100):0;
+  const totalDuration=records.reduce((s,r)=>s+(r.duration||0),0);
+  
+  // Calculate streak
+  let streak=0;
+  const today=new Date().toISOString().split('T')[0];
+  const checkDate=new Date(today);
+  while(true){
+    const ds=checkDate.toISOString().split('T')[0];
+    const has=records.some(r=>r.date===ds);
+    if(!has)break;
+    streak++;
+    checkDate.setDate(checkDate.getDate()-1);
+  }
+  
+  // Weekly chart - last 7 days
+  const weekDays=[];
+  for(let i=6;i>=0;i--){
+    const d=new Date();d.setDate(d.getDate()-i);
+    const ds=d.toISOString().split('T')[0];
+    const dayRecords=records.filter(r=>r.date===ds);
+    const count=dayRecords.length;
+    const weekdays=['日','一','二','三','四','五','六'];
+    weekDays.push({label:'周'+weekdays[d.getDay()],date:ds,count,isToday:i===0});
+  }
+  const maxCount=Math.max(...weekDays.map(w=>w.count),1);
+  
+  // Monthly summary
+  const now=new Date();
+  const monthStart=new Date(now.getFullYear(),now.getMonth(),1).toISOString().split('T')[0];
+  const monthRecords=records.filter(r=>r.date>=monthStart);
+  const monthTotal=monthRecords.length;
+  const monthCompleted=monthRecords.filter(r=>r.status==='completed').length;
+  const monthRate=monthTotal?Math.round(monthCompleted/monthTotal*100):0;
+  
+  // Sport breakdown
+  const sportCount={};
+  records.forEach(r=>{sportCount[r.sport]=(sportCount[r.sport]||0)+1;});
+  const sportRank=Object.entries(sportCount).sort((a,b)=>b[1]-a[1]);
+  
+  let html=`
+    <div class="stat-grid">
+      <div class="stat-card"><div class="label">总记录数</div><div class="value">${total}</div></div>
+      <div class="stat-card"><div class="label">完成率</div><div class="value">${completionRate}%</div></div>
+      <div class="stat-card"><div class="label">连续运动（天）</div><div class="value">${streak}</div></div>
+      <div class="stat-card"><div class="label">总时长（分钟）</div><div class="value">${totalDuration}</div></div>
+    </div>
+    <div class="stat-card stat-card-wide" style="margin-bottom:12px;padding-bottom:24px">
+      <div class="label" style="margin-bottom:12px">最近 7 天</div>
+      <div class="stat-chart">`;
+  
+  weekDays.forEach(w=>{
+    const pct=w.count/maxCount*100;
+    const barH=Math.max(pct*1.1,4);
+    html+=`<div class="stat-bar" style="height:${barH}%;background:${w.isToday?'var(--primary)':'var(--primary-light)'};opacity:${w.count?1:.3}"><span class="stat-bar-value">${w.count||''}</span><span class="stat-bar-label">${w.label}</span></div>`;
+  });
+  
+  html+=`</div></div>
+    <div class="stat-card stat-card-wide" style="margin-bottom:12px">
+      <div class="label" style="margin-bottom:8px">本月进度</div>
+      <div style="display:flex;justify-content:space-between;align-items:center;margin-bottom:4px">
+        <span style="font-size:13px;color:var(--text-secondary)">${monthRecords.length} 条记录</span>
+        <span style="font-size:13px;color:var(--text-secondary)">完成率 ${monthRate}%</span>
+      </div>
+      <div style="height:6px;border-radius:3px;background:var(--border);overflow:hidden">
+        <div style="height:100%;border-radius:3px;width:${monthRate}%;background:linear-gradient(90deg,var(--primary),var(--primary-light));transition:width .6s ease"></div>
+      </div>
+    </div>
+    <div class="stat-card stat-card-wide">
+      <div class="label" style="margin-bottom:8px">运动项目排行</div>`;
+  
+  sportRank.forEach(([sport,count],i)=>{
+    const pct=count/sportRank[0][1]*100;
+    const medals=['🥇','🥈','🥉'];
+    const prefix=i<3?medals[i]:'  ';
+    html+=`<div style="display:flex;align-items:center;gap:8px;margin-bottom:6px"><span style="width:24px;text-align:center;font-size:14px">${prefix}</span><span style="flex:1;font-size:14px">${sport}</span><span style="font-size:13px;color:var(--text-secondary)">${count} 次</span><div style="width:60px;height:6px;border-radius:3px;background:var(--border);overflow:hidden"><div style="height:100%;border-radius:3px;width:${pct}%;background:var(--primary-light)"></div></div></div>`;
+  });
+  
+  html+='</div>';
+  el.innerHTML=html;
+}
+
+// ===== Settings =====
+function renderSports(){
+  const el=document.getElementById('sportList');
+  el.innerHTML=sports.map(s=>'<span class="sport-tag">'+s+'<button class="sport-tag-remove" onclick="removeSport(\''+s+'\')">&times;</button></span>').join('');
+}
+
+function addSport(){
+  const inp=document.getElementById('newSportInput');
+  const s=inp.value.trim();
+  if(!s){showToast('请输入项目名称');return;}
+  if(sports.includes(s)){showToast('该项目已存在');return;}
+  sports.push(s);
+  saveSports();
+  renderSports();
+  inp.value='';
+  showToast('已添加「'+s+'」');
+}
+
+function removeSport(s){
+  if(sports.length<=1){showToast('至少保留一个项目');return;}
+  sports=sports.filter(x=>x!==s);
+  saveSports();
+  renderSports();
+  renderRecords();
+  showToast('已移除「'+s+'」');
+}
+
+function exportData(){
+  const data={records,sports,exportedAt:new Date().toISOString()};
+  const blob=new Blob([JSON.stringify(data,null,2)],{type:'application/json'});
+  const a=document.createElement('a');
+  a.href=URL.createObjectURL(blob);
+  a.download='运动记录_export_'+new Date().toISOString().split('T')[0]+'.json';
+  a.click();
+  URL.revokeObjectURL(a.href);
+  showToast('已导出');
+}
+
+function importData(e){
+  const file=e.target.files[0];
+  if(!file)return;
+  const reader=new FileReader();
+  reader.onload=function(ev){
+    try{
+      const data=JSON.parse(ev.target.result);
+      if(data.records){
+        records=data.records;
+        saveRecords();
+      }
+      if(data.sports){
+        sports=data.sports;
+        saveSports();
+        renderSports();
+      }
+      renderRecords();
+      showToast('已导入 '+(data.records?.length||0)+' 条记录');
+    }catch(err){
+      showToast('导入失败：文件格式错误');
+    }
+  };
+  reader.readAsText(file);
+  e.target.value='';
+}
+
+function confirmClear(){
+  deleteConfirmCb=()=>{
+    records=[];
+    saveRecords();
+    renderRecords();
+    closeConfirm();
+    showToast('已清空所有数据');
+  };
+  document.getElementById('confirmText').textContent='确定要清空所有运动记录吗？此操作不可撤销。';
+  document.getElementById('confirmActionBtn').onclick=deleteConfirmCb;
+  openConfirm();
+}
+
+// ===== Init =====
+loadData();
+renderSports();
+renderRecords();
+if('serviceWorker' in navigator){
+  navigator.serviceWorker.register('/sw.js').catch(()=>{});
+}
+</script>
+</body>
+</html>
