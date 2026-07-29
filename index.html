@@ -593,6 +593,7 @@ function updateExName(i,v){if(currentExercises[i]){currentExercises[i].name=v;}}
 function updateExSets(i,v){if(currentExercises[i]){currentExercises[i].sets=parseInt(v)||0;}}
 function updateExReps(i,v){if(currentExercises[i]){currentExercises[i].reps=parseInt(v)||0;}}
 function updateExCustom(i,v){if(currentExercises[i]){currentExercises[i].custom=true;currentExercises[i].customName=v;currentExercises[i].name=v;}}
+function addNewExercise(i){var n=prompt('输入新动作名称');if(!n||!n.trim())return;var bp=BODY_PARTS.find(function(b){return b.id===currentBodyPart;});if(bp&&bp.exercises.indexOf(n.trim())>=0){showToast('该动作已存在');return;}if(userExercises[currentBodyPart]&&userExercises[currentBodyPart].indexOf(n.trim())>=0){showToast('该动作已存在');return;}if(!userExercises[currentBodyPart])userExercises[currentBodyPart]=[];userExercises[currentBodyPart].push(n.trim());saveUserExercises();if(currentExercises[i]){currentExercises[i].name=n.trim();currentExercises[i].custom=true;currentExercises[i].customName=n.trim();}renderExercises();showToast('已添加“'+n.trim()+'”');}
 
 
 function selectStatus(btn){
