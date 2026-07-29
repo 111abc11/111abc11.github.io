@@ -380,6 +380,7 @@ function loadData(){
   try{
     isDark = localStorage.getItem(THEME_KEY)==='dark';
   }catch(e){isDark=false}
+  try{userExercises=JSON.parse(localStorage.getItem(EXERCISES_KEY))||{}}catch(e){userExercises={}}
   applyTheme();
 }
 
@@ -401,6 +402,9 @@ function saveRecords(){
 }
 
 let userExercises={};
+function saveUserExercises(){
+  localStorage.setItem(EXERCISES_KEY, JSON.stringify(userExercises));
+}
 function saveSports(){
   localStorage.setItem(SPORTS_KEY, JSON.stringify(sports));
 }
@@ -609,7 +613,7 @@ function saveRecord(e){
   e.preventDefault();
   const sport=getSportName();
   if(!sport){showToast('请输入运动项目');return;}
-  const statusBtn=document.querySelector('.status-btn.selected-completed,.status-btn.selected-partial,.status-btn.selected-skipped');
+  const statusBtn=document.querySelector('.status-btn.selected-completed,.status-btn.selected-partial,.status-btn.selected-skipped,.status-btn.selected-draft');
   if(!statusBtn){showToast('请选择完成情况');return;}
   const date=document.getElementById('recordDate').value;
   const status=statusBtn.dataset.status;
@@ -687,7 +691,14 @@ function renderRecords(){
     html+='<div class="date-group"><div class="date-header"><span>'+displayDate+' <span style="color:var(--text-tertiary)">'+label+'</span></span><span class="count">'+items.length+' 项</span></div>';
     items.forEach(r=>{
       const statusMap={completed:'完成',partial:'部分完成',skipped:'跳过',draft:'暂存'};
-      html+='<div class="record-card" onclick="editRecord('+r.id+')"><div class="record-icon '+r.sport+'">'+getSportIcon(r.sport)+'</div><div class="record-info"><div class="record-sport">'+r.sport+'<span class="badge badge-'+r.status+'">'+statusMap[r.status]+'</span></div><div class="record-meta">'+(r.duration?'<span>'+r.duration+' 分钟</span>':'')+'<span>'+r.date+'</span></div>'+(r.notes?'<div class="record-notes">'+escHtml(r.notes)+'</div>':'')+getStrengthHtml(r)+'</div><button class="record-delete" onclick="deleteRecord(\''+r.id+'\',event)" aria-label="删除">&times;</button></div>';
+html+='<div class="record-card" data-rid="'+r.id+'"><div class="record-icon '+r.sport+'">'+getSportIcon(r.sport)+'</div><div class="record-info"><div class="record-sport">'+r.sport+'<span class="badge badge-'+r.status+'">'+statusMap[r.status]+'</span></div><div class="record-meta">'+(r.duration?'<span>'+r.duration+' 分钟</span>':'')+'<span>'+r.date+'</span></div>'+(r.notes?'<div class="record-notes">'+escHtml(r.notes)+'</div>':'')+getStrengthHtml(r)+'</div><button class="record-delete" onclick="deleteRecord(\''+r.id+'\',event)" aria-label="删除">&times;</button></div>';
+// Event delegation for editing
+  document.getElementById('recordList').onclick=function(e){
+    var c=e.target.closest('.record-card');
+    if(c&&!e.target.closest('.record-delete')&&c.getAttribute('data-rid')){
+      editRecord(c.getAttribute('data-rid'));
+    }
+  };
     });
     html+='</div>';
   });
